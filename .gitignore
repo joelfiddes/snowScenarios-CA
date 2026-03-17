@@ -1,2 +1,4 @@
+.DS_Store
+static/data
+static/www
 data/*.geojson
-data/*.csv

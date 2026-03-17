@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>21st Century Snow Climate Scenarios for Central Asia</title>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  html, body { height: 100%; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+  /* Top bar — double height */
+  .top-bar { background-color: #2c3e50; display: flex; align-items: center; padding: 0 1.5rem; height: 80px; }
+  .top-bar-logo { height: 50px; margin-right: 1.5rem; padding-right: 1.5rem; border-right: 1px solid rgba(255,255,255,0.2); }
+  .top-bar-title { color: #fff; font-weight: 600; font-size: 1.25rem; line-height: 1.3; flex: 1; }
+  .top-bar-title small { display: block; font-weight: 400; font-size: 0.8rem; opacity: 0.7; }
+  .info-btn { color: rgba(255,255,255,0.7); background: none; border: none; font-size: 1.4rem; cursor: pointer; padding: 0.75rem; }
+  .info-btn:hover { color: #fff; }
+
+  /* Tab bar below navbar */
+  .tab-bar { background: #f0f0f0; border-bottom: 1px solid #dee2e6; display: flex; padding: 0 1.5rem; }
+  .tab-bar button {
+    background: none; border: none; padding: 0.65rem 1.5rem; font-size: 0.95rem; font-weight: 500;
+    color: #666; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s;
+  }
+  .tab-bar button:hover { color: #2c3e50; }
+  .tab-bar button.active { color: #2c3e50; border-bottom-color: #3498db; }
+  .tab-bar button i { margin-right: 0.4rem; }
+
+  /* Content area */
+  .tab-content-area { height: calc(100vh - 80px - 42px); overflow: hidden; }
+  .tab-pane { display: none; height: 100%; }
+  .tab-pane.active { display: flex; }
+  .sidebar { width: 33.33%; min-width: 300px; max-width: 420px; overflow-y: auto; padding: 1.25rem; background: #f8f9fa; border-right: 1px solid #dee2e6; display: flex; flex-direction: column; }
+  .main-area { flex: 1; overflow: hidden; position: relative; }
+  .main-area-seasonal { padding: 0.5rem; display: flex; flex-direction: column; }
+  #seasonal-plot { flex: 1; width: 100%; min-height: 0; }
+  #map { width: 100%; height: 100%; }
+  .form-group label { font-weight: 600; font-size: 0.85rem; color: #495057; margin-bottom: 0.25rem; }
+  .form-control { font-size: 0.9rem; }
+  .info-panel { background: #fff; border: 1px solid #dee2e6; border-radius: 6px; padding: 1rem; margin-top: 1rem; font-size: 0.85rem; color: #555; line-height: 1.6; }
+  .info-panel h6 { font-weight: 700; color: #2c3e50; margin-bottom: 0.5rem; }
+  .info-panel ul { padding-left: 1.2rem; margin-bottom: 0.5rem; }
+  .info-panel li { margin-bottom: 0.3rem; }
+  .info-panel .note { font-size: 0.8rem; color: #777; margin-top: 0.5rem; margin-bottom: 0; }
+  .logos-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; padding: 1rem 0; margin-top: auto; }
+  .logos-row a img { max-height: 70px; max-width: 140px; object-fit: contain; }
+  .legend-box { position: absolute; top: 10px; right: 10px; background: white; padding: 8px 12px; border-radius: 6px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.3); z-index: 1000; font-size: 0.8rem; }
+  .legend-box .legend-title { font-weight: 600; margin-bottom: 4px; }
+  .legend-bar { width: 160px; height: 14px; border-radius: 2px; }
+  .legend-labels { display: flex; justify-content: space-between; font-size: 0.7rem; margin-top: 2px; }
+  .modal-body .card { margin-bottom: 1rem; }
+  .modal-body .card-header { font-weight: 600; background: #e9ecef; }
+  .step-num { display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center;
+    background: #3498db; color: #fff; border-radius: 50%; font-size: 0.85rem; margin-right: 0.5rem; }
+  .leaflet-control-layers { z-index: 800; }
+  .opacity-control { position: absolute; bottom: 20px; left: 10px; z-index: 1000; background: white;
+    padding: 8px 12px; border-radius: 6px; box-shadow: 0 1px 5px rgba(0,0,0,0.3); font-size: 0.8rem; }
+  .opacity-control label { font-weight: 600; margin-bottom: 2px; display: block; }
+  .opacity-control input { width: 120px; }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="top-bar">
+  <img src="../www/mf_white.png" alt="Mountain Futures" class="top-bar-logo">
+  <div class="top-bar-title">
+    21st Century Snow Climate Scenarios for Central Asia
+    <small>High-resolution climate change impact scenarios for snow cover</small>
+  </div>
+  <button class="info-btn" data-toggle="modal" title="Methodology"><i class="fas fa-info-circle"></i></button>
+</div>
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <button class="active" data-tab="seasonal"><i class="fas fa-chart-line"></i> Seasonal</button>
+  <button data-tab="catchments"><i class="fas fa-map"></i> Catchments</button>
+</div>
+
+<!-- Tab Content -->
+<div class="tab-content-area">
+
+  <!-- Seasonal Tab -->
+  <div class="tab-pane active" id="tab-seasonal">
+    <div class="sidebar">
+      <div>
+        <div class="form-group">
+          <label for="sel-var">Variable</label>
+          <select id="sel-var" class="form-control">
+            <option value="processed_SWE.csv">Snow Water Equivalent (SWE)</option>
+            <option value="processed_snd.csv">Snow Depth</option>
+            <option value="processed_Rof.csv">Snowmelt Runoff</option>
+            <option value="processed_alb.csv">Surface Albedo</option>
+            <option value="processed_Tsf.csv">Surface Temperature</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="sel-basin">River Basin</label>
+          <select id="sel-basin" class="form-control">
+            <option value="AMU_DARYA">Amu Darya</option>
+            <option value="SYR_DARYA">Syr Darya</option>
+            <option value="CHU_TALAS">Chu-Talas</option>
+            <option value="ISSYKUL">Issyk-Kul</option>
+            <option value="MURGHAB_HARIRUD">Murghab-Harirud</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="sel-scenario">Climate Scenario</label>
+          <select id="sel-scenario" class="form-control">
+            <option value="ssp126">SSP1-2.6 (Sustainability)</option>
+            <option value="ssp245">SSP2-4.5 (Middle of the road)</option>
+            <option value="ssp585">SSP5-8.5 (Fossil-fueled development)</option>
+          </select>
+        </div>
+        <div class="info-panel">
+          <h6>Seasonal Snow Cycle</h6>
+          <p>How snow variables change through the hydrological year (September 1 &ndash; August 31) across elevation zones in Central Asia&rsquo;s major river basins.</p>
+          <h6>Reading the plot</h6>
+          <ul>
+            <li><strong>Solid lines</strong> = historical baseline (2000&ndash;2020)</li>
+            <li><strong>Dashed lines</strong> = far-future projection (2080&ndash;2100)</li>
+            <li><strong>Colours</strong> = elevation bands from 0&thinsp;m (purple) to 6000&thinsp;m (yellow)</li>
+          </ul>
+          <p class="note">Projections are based on the TopoCLIM model chain (Fiddes et&nbsp;al., 2022) using bias-corrected CMIP6 climate scenarios and the FSM snow model. Four GCMs span the range of temperature and precipitation uncertainty. The gap between solid and dashed lines reveals the projected climate impact at each elevation.</p>
+        </div>
+      </div>
+      <div class="logos-row">
+        <a href="https://www.unesco.org" target="_blank"><img src="../www/unesco.png" alt="UNESCO"></a>
+        <a href="https://mountainfutures.ch" target="_blank"><img src="../www/mf.png" alt="Mountain Futures"></a>
+        <a href="https://www.thegef.org" target="_blank"><img src="../www/gef.png?v=2" alt="GEF"></a>
+        <a href="https://www.unifr.ch" target="_blank"><img src="../www/unifr2.svg" alt="UniFR"></a>
+      </div>
+    </div>
+    <div class="main-area main-area-seasonal">
+      <div id="seasonal-plot"></div>
+      <div id="seasonal-legend" style="display: flex; gap: 2rem; justify-content: center; padding: 0.5rem 1rem; font-size: 0.85rem; flex-wrap: wrap;">
+        <div>
+          <strong style="margin-right: 0.5rem;">Elevation Band:</strong>
+          <span id="elev-legend-items" style="display: inline-flex; gap: 0.8rem; flex-wrap: wrap;"></span>
+        </div>
+        <div>
+          <strong style="margin-right: 0.5rem;">Period:</strong>
+          <span style="display: inline-flex; gap: 0.8rem;">
+            <span><svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#666" stroke-width="2"/></svg> Historical (2000–2020)</span>
+            <span><svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#666" stroke-width="2" stroke-dasharray="5,3"/></svg> Future (2080–2100)</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Catchments Tab -->
+  <div class="tab-pane" id="tab-catchments">
+    <div class="sidebar">
+      <div>
+        <div class="form-group">
+          <label for="sel-map-var">Variable</label>
+          <select id="sel-map-var" class="form-control">
+            <option value="swe">Snow Water Equivalent</option>
+            <option value="snd">Snow Depth</option>
+            <option value="rof">Snowmelt Runoff</option>
+            <option value="gst">Ground Surface Temperature</option>
+            <option value="alb">Surface Albedo</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="sel-map-scenario">Climate Scenario</label>
+          <select id="sel-map-scenario" class="form-control">
+            <option value="ssp126">SSP1-2.6 (Sustainability)</option>
+            <option value="ssp245">SSP2-4.5 (Middle of the road)</option>
+            <option value="ssp585">SSP5-8.5 (Fossil-fueled development)</option>
+          </select>
+        </div>
+        <div class="info-panel">
+          <h6>Catchment Anomaly Map</h6>
+          <p>Projected change in snow and climate variables for 295 river catchments across High Mountain Central Asia. Each catchment is coloured by its <strong>mean anomaly</strong>: the difference between the far-future period (2081&ndash;2100) and the historical baseline (1981&ndash;2010).</p>
+          <h6>Variables</h6>
+          <ul>
+            <li><strong>SWE</strong> &ndash; snow water equivalent (mm). Negative&nbsp;= less water stored in snowpack</li>
+            <li><strong>Snow Depth</strong> &ndash; physical depth (m). Negative&nbsp;= shallower snowpack</li>
+            <li><strong>Runoff</strong> &ndash; snowmelt runoff (mm). Changes affect downstream water supply timing</li>
+            <li><strong>GST</strong> &ndash; ground surface temperature (&deg;C). Always positive&nbsp;= warming across all catchments</li>
+            <li><strong>Albedo</strong> &ndash; surface reflectivity. Negative&nbsp;= darker surface due to less snow cover</li>
+          </ul>
+          <p class="note">Hover over a catchment to see its mean anomaly value. Higher SSP scenarios (SSP5-8.5) represent stronger warming and generally show larger anomalies, particularly at lower elevations where snow cover is most vulnerable.</p>
+        </div>
+      </div>
+      <div class="logos-row">
+        <a href="https://www.unesco.org" target="_blank"><img src="../www/unesco.png" alt="UNESCO"></a>
+        <a href="https://mountainfutures.ch" target="_blank"><img src="../www/mf.png" alt="Mountain Futures"></a>
+        <a href="https://www.thegef.org" target="_blank"><img src="../www/gef.png?v=2" alt="GEF"></a>
+        <a href="https://www.unifr.ch" target="_blank"><img src="../www/unifr2.svg" alt="UniFR"></a>
+      </div>
+    </div>
+    <div class="main-area" id="map-container">
+      <div id="map"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Info Modal -->
+<div class="modal fade" id="infoModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Methodology</h5>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="card">
+          <div class="card-header"><span class="step-num">1</span>TopoSUB &mdash; Topographical Clustering</div>
+          <div class="card-body">
+            <p>The landscape is partitioned into clusters of similar topographic and land-cover characteristics using the TopoSUB scheme. This reduces the computational domain from millions of grid cells to a tractable number of representative points, enabling high-resolution process-based modelling across Central Asia.</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="step-num">2</span>TopoSCALE &mdash; Downscaling Current Climate</div>
+          <div class="card-body">
+            <p>ERA5 reanalysis fields are topographically downscaled to each cluster centroid using TopoSCALE. This accounts for elevation-dependent lapse rates, terrain shading, and other sub-grid effects to produce realistic meteorological forcing at the point scale.</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="step-num">3</span>TopoCLIM &mdash; Bias Correction of Future Scenarios</div>
+          <div class="card-body">
+            <p>CMIP6 climate model outputs are bias-corrected and downscaled using quantile-delta mapping (TopoCLIM), ensuring that projected changes are anchored to the observed climate while preserving the climate change signal from the GCMs.</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="step-num">4</span>FSM Snow Modelling</div>
+          <div class="card-body">
+            <p>The Flexible Snow Model (FSM2) is driven with the downscaled forcing to simulate snowpack evolution, including snow accumulation, metamorphism, and melt. This produces spatially distributed fields of snow water equivalent, snow depth, runoff, albedo, and surface temperature.</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">Key Variables</div>
+          <div class="card-body p-0">
+            <table class="table table-sm table-striped mb-0">
+              <thead><tr><th>Variable</th><th>Unit</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td>SWE</td><td>kg m&supmin;&sup2;</td><td>Snow Water Equivalent</td></tr>
+                <tr><td>Snow Depth</td><td>m</td><td>Physical depth of snowpack</td></tr>
+                <tr><td>Runoff</td><td>kg m&supmin;&sup2;</td><td>Snowmelt runoff (incl. rain)</td></tr>
+                <tr><td>Albedo</td><td>&ndash;</td><td>Surface reflectivity (0&ndash;1)</td></tr>
+                <tr><td>Surface Temp.</td><td>&deg;C</td><td>Ground surface temperature</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">References</div>
+          <div class="card-body">
+            <ul class="mb-0" style="font-size:0.9rem;">
+              <li>Essery, R. (2015). A factorial snowpack model (FSM 1.0). <em>Geosci. Model Dev.</em>, 8, 3867&ndash;3876.</li>
+              <li>Fiddes, J. &amp; Gruber, S. (2012). TopoSUB: efficient large area numerical modelling in complex topography. <em>Geosci. Model Dev.</em>, 5, 1245&ndash;1257.</li>
+              <li>Fiddes, J. &amp; Gruber, S. (2014). TopoSCALE v.1.0: downscaling gridded climate data in complex terrain. <em>Geosci. Model Dev.</em>, 7, 387&ndash;405.</li>
+              <li>Fiddes, J. et al. (2022). TopoCLIM: rapid topography-based downscaling of regional climate model output. <em>Geosci. Model Dev.</em>, 15, 1753&ndash;1768.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS (for modal) -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+
+<script>
+(function() {
+  // ─── Constants ───
+  const VIRIDIS6 = ["#440154","#443A83","#31688E","#21908C","#35B779","#FDE725"];
+  const ELEV_BANDS = [
+    {low:0, high:1000, label:"0–1000 m"},
+    {low:1000, high:2000, label:"1000–2000 m"},
+    {low:2000, high:3000, label:"2000–3000 m"},
+    {low:3000, high:4000, label:"3000–4000 m"},
+    {low:4000, high:5000, label:"4000–5000 m"},
+    {low:5000, high:6000, label:"5000–6000 m"}
+  ];
+
+  const VAR_LABELS = {
+    "processed_SWE.csv": "Snow Water Equivalent (SWE)",
+    "processed_snd.csv": "Snow Depth",
+    "processed_Rof.csv": "Snowmelt Runoff",
+    "processed_alb.csv": "Surface Albedo",
+    "processed_Tsf.csv": "Surface Temperature"
+  };
+  const VAR_UNITS = {
+    "processed_SWE.csv": "kg m⁻²",
+    "processed_snd.csv": "m",
+    "processed_Rof.csv": "kg m⁻²",
+    "processed_alb.csv": "–",
+    "processed_Tsf.csv": "°C"
+  };
+  const BASIN_LABELS = {
+    AMU_DARYA: "Amu Darya", SYR_DARYA: "Syr Darya", CHU_TALAS: "Chu-Talas",
+    ISSYKUL: "Issyk-Kul", MURGHAB_HARIRUD: "Murghab-Harirud"
+  };
+  const SCENARIO_LABELS = {
+    ssp126: "SSP1-2.6", ssp245: "SSP2-4.5", ssp585: "SSP5-8.5"
+  };
+
+  const MAP_VAR_CONFIG = {
+    swe: { unit: "mm", domain: [-150,150], palette: "bwr" },
+    snd: { unit: "m",  domain: [-0.5,0.5], palette: "bwr" },
+    rof: { unit: "mm", domain: [-1,1],     palette: "brt" },
+    gst: { unit: "°C", domain: [0,8],      palette: "warm" },
+    alb: { unit: "",   domain: [-0.1,0.1], palette: "pvg" }
+  };
+
+  // ─── Color interpolation helpers ───
+  function lerp(a,b,t) { return a + (b-a)*t; }
+  function hexToRgb(h) {
+    const n = parseInt(h.slice(1),16);
+    return [(n>>16)&255,(n>>8)&255,n&255];
+  }
+  function rgbToHex(r,g,b) {
+    return "#"+((1<<24)+(Math.round(r)<<16)+(Math.round(g)<<8)+Math.round(b)).toString(16).slice(1);
+  }
+  function interpColors(colors, t) {
+    t = Math.max(0, Math.min(1, t));
+    const n = colors.length - 1;
+    const i = Math.min(Math.floor(t * n), n - 1);
+    const f = t * n - i;
+    const a = hexToRgb(colors[i]), b = hexToRgb(colors[i+1]);
+    return rgbToHex(lerp(a[0],b[0],f), lerp(a[1],b[1],f), lerp(a[2],b[2],f));
+  }
+
+  const PALETTES = {
+    bwr: ["#2166AC","#67A9CF","#D1E5F0","#F7F7F7","#FDDBC7","#EF8A62","#B2182B"],
+    brt: ["#8C510A","#D8B365","#F6E8C3","#F5F5F5","#C7EAE5","#5AB4AC","#01665E"],
+    warm: ["#FFFFCC","#FED976","#FD8D3C","#E31A1C","#800026"],
+    pvg: ["#7B3294","#C2A5CF","#F7F7F7","#A6DBA0","#008837"]
+  };
+
+  function getColor(val, varKey) {
+    const cfg = MAP_VAR_CONFIG[varKey];
+    const t = (val - cfg.domain[0]) / (cfg.domain[1] - cfg.domain[0]);
+    return interpColors(PALETTES[cfg.palette], t);
+  }
+
+  // ─── hydro_day → date ───
+  function hydroDayToDate(hd) {
+    const d = new Date(2000, 8, 1);
+    d.setDate(d.getDate() + hd - 1);
+    return d;
+  }
+
+  // ─── CSV cache ───
+  const csvCache = {};
+  function loadCSV(filename) {
+    return new Promise((resolve, reject) => {
+      if (csvCache[filename]) { resolve(csvCache[filename]); return; }
+      Papa.parse("../data/" + filename, {
+        download: true, header: true, skipEmptyLines: true,
+        complete: function(results) { csvCache[filename] = results.data; resolve(results.data); },
+        error: function(err) { reject(err); }
+      });
+    });
+  }
+
+  // ─── Seasonal Plot ───
+  async function updateSeasonalPlot() {
+    const varFile = document.getElementById("sel-var").value;
+    const basin = document.getElementById("sel-basin").value;
+    const scenario = document.getElementById("sel-scenario").value;
+
+    const data = await loadCSV(varFile);
+    const filtered = data.filter(r => r.scenario === scenario && r.region === basin);
+
+    const traces = [];
+    ELEV_BANDS.forEach((eb, i) => {
+      const band = filtered.filter(r => parseFloat(r.elev_low) === eb.low && parseFloat(r.elev_high) === eb.high);
+      if (band.length === 0) return;
+      band.sort((a,b) => parseInt(a.hydro_day) - parseInt(b.hydro_day));
+
+      const x = band.map(r => hydroDayToDate(parseInt(r.hydro_day)));
+      const yHist = band.map(r => r.historical_mean === "" ? null : parseFloat(r.historical_mean));
+      const yFut  = band.map(r => r.future_mean === "" ? null : parseFloat(r.future_mean));
+
+      if (yHist.some(v => v !== null)) {
+        traces.push({
+          x: x, y: yHist, type: "scatter", mode: "lines",
+          name: eb.label, legendgroup: eb.label,
+          line: { color: VIRIDIS6[i], width: 2, dash: "solid" },
+          hovertemplate: eb.label + "<br>Historical: %{y:.2f}<extra></extra>"
+        });
+      }
+      if (yFut.some(v => v !== null)) {
+        traces.push({
+          x: x, y: yFut, type: "scatter", mode: "lines",
+          name: eb.label + " (future)", legendgroup: eb.label,
+          showlegend: false,
+          line: { color: VIRIDIS6[i], width: 2, dash: "dash" },
+          hovertemplate: eb.label + "<br>Future: %{y:.2f}<extra></extra>"
+        });
+      }
+    });
+
+    // Build elevation legend HTML
+    const elevLegendEl = document.getElementById("elev-legend-items");
+    elevLegendEl.innerHTML = ELEV_BANDS.map((eb, i) =>
+      '<span><svg width="18" height="10"><line x1="0" y1="5" x2="18" y2="5" stroke="' + VIRIDIS6[i] + '" stroke-width="3"/></svg> ' + eb.label + '</span>'
+    ).join("");
+
+    const varLabel = VAR_LABELS[varFile];
+    const varUnit = VAR_UNITS[varFile];
+    const basinLabel = BASIN_LABELS[basin];
+    const scenLabel = SCENARIO_LABELS[scenario];
+
+    const layout = {
+      title: { text: varLabel + " — " + basinLabel + " — " + scenLabel, font: { size: 16 } },
+      xaxis: { tickformat: "%b", dtick: "M1", ticklabelmode: "period", title: "Day of Year" },
+      yaxis: { title: varLabel + " [" + varUnit + "]" },
+      showlegend: false,
+      margin: { t: 50, b: 40, l: 70, r: 20 },
+      hovermode: "x unified"
+    };
+
+    Plotly.react("seasonal-plot", traces, layout, { responsive: true });
+  }
+
+  document.getElementById("sel-var").addEventListener("change", updateSeasonalPlot);
+  document.getElementById("sel-basin").addEventListener("change", updateSeasonalPlot);
+  document.getElementById("sel-scenario").addEventListener("change", updateSeasonalPlot);
+
+  // ─── Map ───
+  let map, geojsonLayer, legendDiv, opacityControl;
+  let mapInitialized = false;
+
+  function initMap() {
+    if (mapInitialized) return;
+    mapInitialized = true;
+
+    map = L.map("map", { zoomControl: true });
+    map.fitBounds([[33.5, 61],[43.3, 79.5]]);
+
+    const positron = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>', maxZoom: 18
+    });
+    const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>', maxZoom: 18
+    });
+    const satellite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+      attribution: '&copy; Esri', maxZoom: 18
+    });
+    const topo = L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; OpenTopoMap', maxZoom: 17
+    });
+
+    positron.addTo(map);
+    L.control.layers({ "CartoDB Positron": positron, "OpenStreetMap": osm, "Satellite (Esri)": satellite, "OpenTopoMap": topo },
+      null, { position: "topleft" }).addTo(map);
+
+    legendDiv = document.createElement("div");
+    legendDiv.className = "legend-box";
+    document.getElementById("map-container").appendChild(legendDiv);
+
+    opacityControl = document.createElement("div");
+    opacityControl.className = "opacity-control";
+    opacityControl.innerHTML = '<label>Layer Opacity</label><input type="range" min="0" max="1" step="0.05" value="0.75" id="opacity-slider">';
+    document.getElementById("map-container").appendChild(opacityControl);
+    document.getElementById("opacity-slider").addEventListener("input", function() {
+      if (geojsonLayer) geojsonLayer.setStyle({ fillOpacity: parseFloat(this.value) });
+    });
+  }
+
+  function buildLegend(varKey) {
+    const cfg = MAP_VAR_CONFIG[varKey];
+    const pal = PALETTES[cfg.palette];
+    const grad = pal.map((c, i) => c + " " + (i / (pal.length-1) * 100) + "%").join(", ");
+    const unitStr = cfg.unit ? " (" + cfg.unit + ")" : "";
+    const varNames = { swe:"Snow Water Equivalent", snd:"Snow Depth", rof:"Snowmelt Runoff", gst:"Ground Surface Temp.", alb:"Surface Albedo" };
+    legendDiv.innerHTML =
+      '<div class="legend-title">' + varNames[varKey] + unitStr + '</div>' +
+      '<div class="legend-bar" style="background: linear-gradient(to right, ' + grad + ');"></div>' +
+      '<div class="legend-labels"><span>' + cfg.domain[0] + '</span><span>' + cfg.domain[1] + '</span></div>';
+  }
+
+  async function updateMap() {
+    const varKey = document.getElementById("sel-map-var").value;
+    const scenario = document.getElementById("sel-map-scenario").value;
+    const filename = "../data/simplified/" + varKey + "_" + scenario + "_zonal_stats.geojson";
+    const cfg = MAP_VAR_CONFIG[varKey];
+    const opacity = document.getElementById("opacity-slider") ? parseFloat(document.getElementById("opacity-slider").value) : 0.75;
+
+    try {
+      const resp = await fetch(filename);
+      const geojson = await resp.json();
+      if (geojsonLayer) map.removeLayer(geojsonLayer);
+
+      geojsonLayer = L.geoJSON(geojson, {
+        style: function(feature) {
+          const val = feature.properties.mean;
+          const color = (val === null || val === undefined) ? "#ccc" : getColor(val, varKey);
+          return { fillColor: color, fillOpacity: opacity, color: "#666", weight: 0.8, opacity: 0.6 };
+        },
+        onEachFeature: function(feature, layer) {
+          layer.on("mouseover", function(e) {
+            e.target.setStyle({ weight: 2.5, color: "#333", opacity: 1 });
+            e.target.bringToFront();
+            const val = feature.properties.mean;
+            const unitStr = cfg.unit ? " " + cfg.unit : "";
+            const text = val !== null && val !== undefined ? "Mean anomaly: " + val.toFixed(3) + unitStr : "No data";
+            layer.bindTooltip(text).openTooltip();
+          });
+          layer.on("mouseout", function(e) { geojsonLayer.resetStyle(e.target); });
+        }
+      }).addTo(map);
+
+      buildLegend(varKey);
+    } catch(err) { console.error("Failed to load GeoJSON:", err); }
+  }
+
+  document.getElementById("sel-map-var").addEventListener("change", updateMap);
+  document.getElementById("sel-map-scenario").addEventListener("change", updateMap);
+
+  // ─── Tab switching ───
+  document.querySelectorAll(".tab-bar button").forEach(btn => {
+    btn.addEventListener("click", function() {
+      document.querySelectorAll(".tab-bar button").forEach(b => b.classList.remove("active"));
+      this.classList.add("active");
+      const tab = this.dataset.tab;
+      document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+      document.getElementById("tab-" + tab).classList.add("active");
+      if (tab === "catchments") {
+        initMap();
+        setTimeout(() => { map.invalidateSize(); updateMap(); }, 100);
+      }
+      if (tab === "seasonal") {
+        setTimeout(() => Plotly.Plots.resize("seasonal-plot"), 100);
+      }
+    });
+  });
+
+  // ─── Info modal ───
+  document.querySelector(".info-btn").addEventListener("click", function() {
+    $("#infoModal").modal("show");
+  });
+
+  // ─── Init ───
+  updateSeasonalPlot();
+  window.addEventListener("resize", function() {
+    if (document.getElementById("tab-seasonal").classList.contains("active")) Plotly.Plots.resize("seasonal-plot");
+    if (map) map.invalidateSize();
+  });
+})();
+</script>
+</body>
+</html>
