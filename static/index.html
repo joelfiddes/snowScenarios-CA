@@ -123,11 +123,12 @@
           <p>How snow variables change through the hydrological year (September 1 &ndash; August 31) across elevation zones in Central Asia&rsquo;s major river basins.</p>
           <h6>Reading the plot</h6>
           <ul>
-            <li><strong>Solid lines</strong> = historical baseline (2000&ndash;2020)</li>
-            <li><strong>Dashed lines</strong> = far-future projection (2080&ndash;2100)</li>
+            <li><strong>Solid lines</strong> = historical baseline (1981&ndash;2010)</li>
+            <li><strong>Dashed lines</strong> = near-future projection (2021&ndash;2040)</li>
+            <li><strong>Dotted lines</strong> = far-future projection (2081&ndash;2100)</li>
             <li><strong>Colours</strong> = elevation bands from 0&thinsp;m (purple) to 6000&thinsp;m (yellow)</li>
           </ul>
-          <p class="note">Projections are based on the TopoCLIM model chain (Fiddes et&nbsp;al., 2022) using bias-corrected CMIP6 climate scenarios and the FSM snow model. Four GCMs span the range of temperature and precipitation uncertainty. The gap between solid and dashed lines reveals the projected climate impact at each elevation.</p>
+          <p class="note">Projections are based on the TopoCLIM model chain (Fiddes et&nbsp;al., 2022) using bias-corrected CMIP6 climate scenarios and the FSM snow model. The gap between solid, dashed, and dotted lines reveals the projected near-term and long-term climate impact at each elevation.</p>
         </div>
       </div>
       <div class="logos-row">
@@ -147,8 +148,9 @@
         <div>
           <strong style="margin-right: 0.5rem;">Period:</strong>
           <span style="display: inline-flex; gap: 0.8rem;">
-            <span><svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#666" stroke-width="2"/></svg> Historical (2000–2020)</span>
-            <span><svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#666" stroke-width="2" stroke-dasharray="5,3"/></svg> Future (2080–2100)</span>
+            <span><svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#666" stroke-width="2"/></svg> Historical (1981–2010)</span>
+            <span><svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#666" stroke-width="2" stroke-dasharray="5,3"/></svg> Near Future (2021–2040)</span>
+            <span><svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#666" stroke-width="2" stroke-dasharray="2,2"/></svg> Far Future (2081–2100)</span>
           </span>
         </div>
       </div>
@@ -386,6 +388,7 @@
 
       const x = band.map(r => hydroDayToDate(parseInt(r.hydro_day)));
       const yHist = band.map(r => r.historical_mean === "" ? null : parseFloat(r.historical_mean));
+      const yNF   = band.map(r => r.near_future_mean === "" ? null : parseFloat(r.near_future_mean));
       const yFut  = band.map(r => r.future_mean === "" ? null : parseFloat(r.future_mean));
 
       if (yHist.some(v => v !== null)) {
@@ -396,13 +399,22 @@
           hovertemplate: eb.label + "<br>Historical: %{y:.2f}<extra></extra>"
         });
       }
+      if (yNF.some(v => v !== null)) {
+        traces.push({
+          x: x, y: yNF, type: "scatter", mode: "lines",
+          name: eb.label + " (near future)", legendgroup: eb.label,
+          showlegend: false,
+          line: { color: VIRIDIS6[i], width: 2, dash: "dash" },
+          hovertemplate: eb.label + "<br>Near Future: %{y:.2f}<extra></extra>"
+        });
+      }
       if (yFut.some(v => v !== null)) {
         traces.push({
           x: x, y: yFut, type: "scatter", mode: "lines",
-          name: eb.label + " (future)", legendgroup: eb.label,
+          name: eb.label + " (far future)", legendgroup: eb.label,
           showlegend: false,
-          line: { color: VIRIDIS6[i], width: 2, dash: "dash" },
-          hovertemplate: eb.label + "<br>Future: %{y:.2f}<extra></extra>"
+          line: { color: VIRIDIS6[i], width: 2, dash: "dot" },
+          hovertemplate: eb.label + "<br>Far Future: %{y:.2f}<extra></extra>"
         });
       }
     });

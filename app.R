@@ -253,8 +253,9 @@ ui <- navbarPage(
                   Asia\u2019s major river basins."),
           tags$p(tags$b("Reading the plot:"),
             tags$ul(style = "padding-left: 18px; margin-top: 4px;",
-              tags$li(tags$span(style = "font-weight: 600;", "Solid lines"), " = historical baseline (2000\u20132020)"),
-              tags$li(tags$span(style = "font-weight: 600;", "Dashed lines"), " = far-future projection (2080\u20132100)"),
+              tags$li(tags$span(style = "font-weight: 600;", "Solid lines"), " = historical baseline (1981\u20132010)"),
+              tags$li(tags$span(style = "font-weight: 600;", "Dashed lines"), " = near-future projection (2021\u20132040)"),
+              tags$li(tags$span(style = "font-weight: 600;", "Dotted lines"), " = far-future projection (2081\u20132100)"),
               tags$li(tags$span(style = "font-weight: 600;", "Colours"), " = elevation bands from 0 m (purple) to 6000 m (yellow)")
             )
           ),
@@ -262,8 +263,8 @@ ui <- navbarPage(
             "Projections are based on the TopoCLIM model chain (Fiddes et al., 2022)
              using bias-corrected CMIP6 climate scenarios and the FSM snow model.
              Four GCMs span the range of temperature and precipitation uncertainty.
-             The gap between solid and dashed lines reveals the projected climate
-             impact at each elevation.")
+             The gap between solid, dashed, and dotted lines reveals the projected
+             near-term and long-term climate impact at each elevation.")
         ),
         tags$div(style = "display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 12px 5px; justify-items: center; align-items: center;",
           tags$a(href = "https://www.unesco.org", target = "_blank",
@@ -361,7 +362,7 @@ server <- function(input, output, session) {
   df_long <- reactive({
     req(input$s_variable)
     seasonal_data_list[[input$s_variable]] %>%
-      pivot_longer(cols = c("historical_mean", "future_mean"),
+      pivot_longer(cols = c("historical_mean", "near_future_mean", "future_mean"),
                    names_to = "period", values_to = "value") %>%
       mutate(elev_band = paste0(elev_low, "-", elev_high))
   })
@@ -427,7 +428,10 @@ server <- function(input, output, session) {
       geom_line(size = 1) +
       scale_color_viridis_d(name = "Elevation Band") +
       scale_linetype_manual(
-        values = c("historical_mean" = "solid", "future_mean" = "twodash"),
+        values = c("historical_mean" = "solid", "near_future_mean" = "dashed", "future_mean" = "dotted"),
+        labels = c("historical_mean" = "Historical (1981-2010)",
+                    "near_future_mean" = "Near Future (2021-2040)",
+                    "future_mean" = "Far Future (2081-2100)"),
         guide = guide_legend(override.aes = list(size = 1.5))
       ) +
       scale_x_date(date_labels = "%m-%d", date_breaks = "1 month",
