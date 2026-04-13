@@ -254,7 +254,7 @@ ui <- navbarPage(
           tags$p(tags$b("Reading the plot:"),
             tags$ul(style = "padding-left: 18px; margin-top: 4px;",
               tags$li(tags$span(style = "font-weight: 600;", "Solid lines"), " = historical baseline (1981\u20132010)"),
-              tags$li(tags$span(style = "font-weight: 600;", "Dashed lines"), " = near-future projection (2021\u20132040)"),
+              tags$li(tags$span(style = "font-weight: 600;", "Dashed lines"), " = near-future projection (2030\u20132050)"),
               tags$li(tags$span(style = "font-weight: 600;", "Dotted lines"), " = far-future projection (2081\u20132100)"),
               tags$li(tags$span(style = "font-weight: 600;", "Colours"), " = elevation bands from 0 m (purple) to 6000 m (yellow)")
             )
@@ -430,7 +430,7 @@ server <- function(input, output, session) {
       scale_linetype_manual(
         values = c("historical_mean" = "solid", "near_future_mean" = "dashed", "future_mean" = "dotted"),
         labels = c("historical_mean" = "Historical (1981-2010)",
-                    "near_future_mean" = "Near Future (2021-2040)",
+                    "near_future_mean" = "Near Future (2030-2050)",
                     "future_mean" = "Far Future (2081-2100)"),
         guide = guide_legend(override.aes = list(size = 1.5))
       ) +

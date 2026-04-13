@@ -69,7 +69,7 @@
 
 <!-- Top Bar -->
 <div class="top-bar">
-  <img src="../www/mf_white.png" alt="Mountain Futures" class="top-bar-logo">
+  <img src="www/mf_white.png" alt="Mountain Futures" class="top-bar-logo">
   <div class="top-bar-title">
     21st Century Snow Climate Scenarios for Central Asia
     <small>High-resolution climate change impact scenarios for snow cover</small>
@@ -124,7 +124,7 @@
           <h6>Reading the plot</h6>
           <ul>
             <li><strong>Solid lines</strong> = historical baseline (1981&ndash;2010)</li>
-            <li><strong>Dashed lines</strong> = near-future projection (2021&ndash;2040)</li>
+            <li><strong>Dashed lines</strong> = near-future projection (2030&ndash;2050)</li>
             <li><strong>Dotted lines</strong> = far-future projection (2081&ndash;2100)</li>
             <li><strong>Colours</strong> = elevation bands from 0&thinsp;m (purple) to 6000&thinsp;m (yellow)</li>
           </ul>
@@ -132,10 +132,10 @@
         </div>
       </div>
       <div class="logos-row">
-        <a href="https://www.unesco.org" target="_blank"><img src="../www/unesco.png" alt="UNESCO"></a>
-        <a href="https://mountainfutures.ch" target="_blank"><img src="../www/mf.png" alt="Mountain Futures"></a>
-        <a href="https://www.thegef.org" target="_blank"><img src="../www/gef.png?v=2" alt="GEF"></a>
-        <a href="https://www.unifr.ch" target="_blank"><img src="../www/unifr2.svg" alt="UniFR"></a>
+        <a href="https://www.unesco.org" target="_blank"><img src="www/unesco.png" alt="UNESCO"></a>
+        <a href="https://mountainfutures.ch" target="_blank"><img src="www/mf.png" alt="Mountain Futures"></a>
+        <a href="https://www.thegef.org" target="_blank"><img src="www/gef.png?v=3" alt="GEF"></a>
+        <a href="https://www.unifr.ch" target="_blank"><img src="www/unifr2.svg" alt="UniFR"></a>
       </div>
     </div>
     <div class="main-area main-area-seasonal">
@@ -149,7 +149,7 @@
           <strong style="margin-right: 0.5rem;">Period:</strong>
           <span style="display: inline-flex; gap: 0.8rem;">
             <span><svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#666" stroke-width="2"/></svg> Historical (1981–2010)</span>
-            <span><svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#666" stroke-width="2" stroke-dasharray="5,3"/></svg> Near Future (2021–2040)</span>
+            <span><svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#666" stroke-width="2" stroke-dasharray="5,3"/></svg> Near Future (2030–2050)</span>
             <span><svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#666" stroke-width="2" stroke-dasharray="2,2"/></svg> Far Future (2081–2100)</span>
           </span>
         </div>
@@ -194,10 +194,10 @@
         </div>
       </div>
       <div class="logos-row">
-        <a href="https://www.unesco.org" target="_blank"><img src="../www/unesco.png" alt="UNESCO"></a>
-        <a href="https://mountainfutures.ch" target="_blank"><img src="../www/mf.png" alt="Mountain Futures"></a>
-        <a href="https://www.thegef.org" target="_blank"><img src="../www/gef.png?v=2" alt="GEF"></a>
-        <a href="https://www.unifr.ch" target="_blank"><img src="../www/unifr2.svg" alt="UniFR"></a>
+        <a href="https://www.unesco.org" target="_blank"><img src="www/unesco.png" alt="UNESCO"></a>
+        <a href="https://mountainfutures.ch" target="_blank"><img src="www/mf.png" alt="Mountain Futures"></a>
+        <a href="https://www.thegef.org" target="_blank"><img src="www/gef.png?v=3" alt="GEF"></a>
+        <a href="https://www.unifr.ch" target="_blank"><img src="www/unifr2.svg" alt="UniFR"></a>
       </div>
     </div>
     <div class="main-area" id="map-container">
@@ -363,7 +363,7 @@
   function loadCSV(filename) {
     return new Promise((resolve, reject) => {
       if (csvCache[filename]) { resolve(csvCache[filename]); return; }
-      Papa.parse("../data/" + filename, {
+      Papa.parse("data/" + filename + "?v=3", {
         download: true, header: true, skipEmptyLines: true,
         complete: function(results) { csvCache[filename] = results.data; resolve(results.data); },
         error: function(err) { reject(err); }
@@ -502,7 +502,7 @@
   async function updateMap() {
     const varKey = document.getElementById("sel-map-var").value;
     const scenario = document.getElementById("sel-map-scenario").value;
-    const filename = "../data/simplified/" + varKey + "_" + scenario + "_zonal_stats.geojson";
+    const filename = "data/simplified/" + varKey + "_" + scenario + "_zonal_stats.geojson";
     const cfg = MAP_VAR_CONFIG[varKey];
     const opacity = document.getElementById("opacity-slider") ? parseFloat(document.getElementById("opacity-slider").value) : 0.75;
 
