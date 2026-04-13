@@ -80,6 +80,7 @@
 <!-- Tab Bar -->
 <div class="tab-bar">
   <button class="active" data-tab="seasonal"><i class="fas fa-chart-line"></i> Seasonal</button>
+  <button data-tab="timeseries"><i class="fas fa-chart-area"></i> Timeseries</button>
   <button data-tab="catchments"><i class="fas fa-map"></i> Catchments</button>
 </div>
 
@@ -129,6 +130,7 @@
             <li><strong>Colours</strong> = elevation bands from 0&thinsp;m (purple) to 6000&thinsp;m (yellow)</li>
           </ul>
           <p class="note">Projections are based on the TopoCLIM model chain (Fiddes et&nbsp;al., 2022) using bias-corrected CMIP6 climate scenarios and the FSM snow model. The gap between solid, dashed, and dotted lines reveals the projected near-term and long-term climate impact at each elevation.</p>
+          <p class="note"><strong>Note:</strong> Glacier samples (permanently snow-covered in historical period) are excluded. At 5000&ndash;6000&thinsp;m, 53% of samples are glaciated; at 4000&ndash;5000&thinsp;m, 4%.</p>
         </div>
       </div>
       <div class="logos-row">
@@ -154,6 +156,54 @@
           </span>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Timeseries Tab -->
+  <div class="tab-pane" id="tab-timeseries">
+    <div class="sidebar">
+      <div>
+        <div class="form-group">
+          <label for="sel-ts-var">Variable</label>
+          <select id="sel-ts-var" class="form-control">
+            <option value="timeseries_SWE.csv">Snow Water Equivalent (SWE)</option>
+            <option value="timeseries_snd.csv">Snow Depth</option>
+            <option value="timeseries_Rof.csv">Snowmelt Runoff</option>
+            <option value="timeseries_alb.csv">Surface Albedo</option>
+            <option value="timeseries_Tsf.csv">Surface Temperature</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="sel-ts-basin">River Basin</label>
+          <select id="sel-ts-basin" class="form-control">
+            <option value="AMU_DARYA">Amu Darya</option>
+            <option value="SYR_DARYA">Syr Darya</option>
+            <option value="CHU_TALAS">Chu-Talas</option>
+            <option value="ISSYKUL">Issyk-Kul</option>
+            <option value="MURGHAB_HARIRUD">Murghab-Harirud</option>
+          </select>
+        </div>
+        <div class="info-panel">
+          <h6>Annual Timeseries (1981&ndash;2100)</h6>
+          <p>Annual mean values for each elevation band across the full simulation period. Historical ERA5-forced data (1981&ndash;2014) shown in black, future SSP projections (2015&ndash;2100) in colour.</p>
+          <h6>Reading the plot</h6>
+          <ul>
+            <li><strong>Black line</strong> = historical (ERA5-forced, 1981&ndash;2014)</li>
+            <li><strong>Coloured lines</strong> = SSP1-2.6, SSP2-4.5, SSP5-8.5</li>
+            <li>One subplot per elevation band</li>
+          </ul>
+          <p class="note">Glacier samples (permanently snow-covered in historical period) are excluded. At 5000&ndash;6000&thinsp;m, 53% of samples are glaciated; at 4000&ndash;5000&thinsp;m, 4%.</p>
+        </div>
+      </div>
+      <div class="logos-row">
+        <a href="https://www.unesco.org" target="_blank"><img src="www/unesco.png" alt="UNESCO"></a>
+        <a href="https://mountainfutures.ch" target="_blank"><img src="www/mf.png" alt="Mountain Futures"></a>
+        <a href="https://www.thegef.org" target="_blank"><img src="www/gef.png?v=3" alt="GEF"></a>
+        <a href="https://www.unifr.ch" target="_blank"><img src="www/unifr2.svg" alt="UniFR"></a>
+      </div>
+    </div>
+    <div class="main-area" style="overflow-y: auto; padding: 0.5rem;">
+      <div id="timeseries-plot"></div>
     </div>
   </div>
 
@@ -537,6 +587,112 @@
   document.getElementById("sel-map-var").addEventListener("change", updateMap);
   document.getElementById("sel-map-scenario").addEventListener("change", updateMap);
 
+  // ─── Timeseries Plot ───
+  const TS_VAR_LABELS = {
+    "timeseries_SWE.csv": "Snow Water Equivalent (SWE)",
+    "timeseries_snd.csv": "Snow Depth",
+    "timeseries_Rof.csv": "Snowmelt Runoff",
+    "timeseries_alb.csv": "Surface Albedo",
+    "timeseries_Tsf.csv": "Surface Temperature"
+  };
+  const TS_VAR_UNITS = {
+    "timeseries_SWE.csv": "kg m⁻²",
+    "timeseries_snd.csv": "m",
+    "timeseries_Rof.csv": "kg m⁻²",
+    "timeseries_alb.csv": "–",
+    "timeseries_Tsf.csv": "°C"
+  };
+  const SSP_COLORS = { historical: "#333", ssp126: "#2166AC", ssp245: "#E08214", ssp585: "#B2182B" };
+  const SSP_NAMES = { historical: "Historical", ssp126: "SSP1-2.6", ssp245: "SSP2-4.5", ssp585: "SSP5-8.5" };
+  const GLACIER_PCT = { "4000-5000": 4, "5000-6000": 53 };
+
+  async function updateTimeseries() {
+    const varFile = document.getElementById("sel-ts-var").value;
+    const basin = document.getElementById("sel-ts-basin").value;
+    const data = await loadCSV(varFile);
+    const filtered = data.filter(r => r.region === basin);
+
+    // Find which elevation bands exist
+    const bandSet = new Set();
+    filtered.forEach(r => bandSet.add(r.elev_low + "-" + r.elev_high));
+    const bands = Array.from(bandSet).sort((a, b) => parseFloat(a) - parseFloat(b));
+
+    const subplots = [];
+    const allTraces = [];
+    const annotations = [];
+
+    bands.forEach((bandKey, idx) => {
+      const [eLow, eHigh] = bandKey.split("-").map(Number);
+      const bandData = filtered.filter(r => parseFloat(r.elev_low) === eLow && parseFloat(r.elev_high) === eHigh);
+      const axisNum = idx + 1;
+      const yaxis = idx === 0 ? "yaxis" : "yaxis" + axisNum;
+      const yref = idx === 0 ? "y" : "y" + axisNum;
+
+      ["historical", "ssp126", "ssp245", "ssp585"].forEach(scen => {
+        const scenData = bandData.filter(r => r.scenario === scen);
+        if (scenData.length === 0) return;
+        scenData.sort((a, b) => parseInt(a.year) - parseInt(b.year));
+
+        allTraces.push({
+          x: scenData.map(r => parseInt(r.year)),
+          y: scenData.map(r => r.value === "" ? null : parseFloat(r.value)),
+          type: "scatter", mode: "lines",
+          name: SSP_NAMES[scen],
+          legendgroup: scen,
+          showlegend: idx === 0,
+          line: { color: SSP_COLORS[scen], width: scen === "historical" ? 2 : 1.5 },
+          xaxis: "x",
+          yaxis: yref,
+          hovertemplate: SSP_NAMES[scen] + " %{x}: %{y:.2f}<extra>" + eLow + "-" + eHigh + "m</extra>"
+        });
+      });
+
+      // Add glacier % annotation if applicable
+      const glacierKey = eLow + "-" + eHigh;
+      const glacierNote = GLACIER_PCT[glacierKey] ? " (" + GLACIER_PCT[glacierKey] + "% glaciated, excluded)" : "";
+
+      annotations.push({
+        text: "<b>" + eLow + "–" + eHigh + " m</b>" + glacierNote,
+        xref: "paper", yref: yref,
+        x: 0, y: 1, xanchor: "left", yanchor: "bottom",
+        showarrow: false, font: { size: 11, color: "#444" }
+      });
+    });
+
+    const nBands = bands.length;
+    const gap = 0.04;
+    const plotHeight = Math.max(600, nBands * 160);
+    const bandHeight = (1 - gap * (nBands - 1)) / nBands;
+
+    const layout = {
+      title: { text: TS_VAR_LABELS[varFile] + " — " + BASIN_LABELS[basin], font: { size: 16 } },
+      height: plotHeight,
+      margin: { t: 50, b: 40, l: 70, r: 20 },
+      xaxis: { title: "Year", domain: [0, 1] },
+      showlegend: true,
+      legend: { orientation: "h", y: -0.05, x: 0.5, xanchor: "center" },
+      hovermode: "x unified",
+      annotations: annotations
+    };
+
+    // Create y-axes for subplots
+    bands.forEach((bandKey, idx) => {
+      const axisKey = idx === 0 ? "yaxis" : "yaxis" + (idx + 1);
+      const domainStart = 1 - (idx + 1) * bandHeight - idx * gap;
+      const domainEnd = 1 - idx * bandHeight - idx * gap;
+      layout[axisKey] = {
+        title: idx === Math.floor(nBands / 2) ? TS_VAR_LABELS[varFile] + " [" + TS_VAR_UNITS[varFile] + "]" : "",
+        domain: [Math.max(0, domainStart), domainEnd],
+        anchor: "x"
+      };
+    });
+
+    Plotly.react("timeseries-plot", allTraces, layout, { responsive: true });
+  }
+
+  document.getElementById("sel-ts-var").addEventListener("change", updateTimeseries);
+  document.getElementById("sel-ts-basin").addEventListener("change", updateTimeseries);
+
   // ─── Tab switching ───
   document.querySelectorAll(".tab-bar button").forEach(btn => {
     btn.addEventListener("click", function() {
@@ -552,6 +708,10 @@
       if (tab === "seasonal") {
         setTimeout(() => Plotly.Plots.resize("seasonal-plot"), 100);
       }
+      if (tab === "timeseries") {
+        updateTimeseries();
+        setTimeout(() => Plotly.Plots.resize("timeseries-plot"), 100);
+      }
     });
   });
 
@@ -564,6 +724,7 @@
   updateSeasonalPlot();
   window.addEventListener("resize", function() {
     if (document.getElementById("tab-seasonal").classList.contains("active")) Plotly.Plots.resize("seasonal-plot");
+    if (document.getElementById("tab-timeseries").classList.contains("active")) Plotly.Plots.resize("timeseries-plot");
     if (map) map.invalidateSize();
   });
 })();
